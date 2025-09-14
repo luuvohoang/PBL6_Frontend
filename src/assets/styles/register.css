@@ -1,0 +1,110 @@
+@charset "UTF-8";
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100vw;
+    height: 100vh;
+    background-image:  url("./img/435580641_122135247254181506_412661461086739586_n.jpg");
+    background-size: cover;
+}
+
+.box-register {
+    width: 400px;
+    height: 600px;
+    background-color: white;
+    padding: 30px 0;
+    border-radius: 20px;
+}
+
+.title {
+    text-align: center;
+    font-size: 30px;
+    margin: 0 15px;
+    margin-bottom: 20px;
+}
+
+hr{
+    margin-bottom: 15px ;
+}
+.box-input {
+    position: relative;
+    width: 400px;
+    height: 40px;
+    padding:0 30px;
+    margin-bottom: 25px;
+}
+.box-input input {
+    width: 100%;
+    height: 100%;
+    border: none;
+    outline: none;
+    border-bottom: 2px solid black;
+    font-size: 20px;
+}
+
+.box-input input ~ .active{
+    top: -2px;
+    color :rgb(255, 0, 0);
+}
+.title-input{
+    position: absolute;
+    top: 50%;
+    left: 30px;
+    transform: translateY(-50%);
+    font-weight: 600;
+    opacity: 0.4;
+    font-size: 16px;
+}
+.errorMessages{
+    height: 20px;
+    color:red;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: right;
+}
+
+.button-signup{
+    width: 100%;
+    height: 50px;
+    padding: 0 30px;
+    margin-top: 20px;
+}
+.button-signup button{
+    width: 100%;
+    height: 100%;
+    padding: 0 30px;
+    background-color: #2691d9;
+    color: #b2f3ff;
+    border: none;
+    border-radius: 25px;
+    font-size: 20px;
+    cursor: pointer;
+}
+.button-signup button:hover{
+    background-color: #569cff;
+}
+.button-goback{
+    width: 120px;
+    height: 30px;
+    padding: 0 30px;
+    margin-top: 20px;
+}
+.button-goback button{
+    width: 100%;
+    height: 100%;
+    background-color: #2691d9;
+    color: #b2f3ff;
+    border: none;
+    border-radius: 15px;
+    font-size: 10px;
+}
+.button-goback button:hover{
+    background-color: #569cff;
+}

@@ -1,0 +1,119 @@
+@charset "UTF-8";
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+.wrapper{
+    width: 100vw;
+    height: 100vh;
+    padding-top: 40px;
+    padding-left: 70px;
+    background-color: #c5c2c7;
+}
+.box-title{
+    height: 30px;
+    margin:10px 20px;
+    display: flex;
+    align-items: center;
+}
+.box-title span{
+    padding-left: 20px;
+    font-size: 20px;
+}
+
+/* thng bao */
+.box-notification{
+    height: 250px;
+    padding: 10px;
+    margin: 10px;
+    display: flex;
+}
+.notifications{
+    width: 33%;
+    margin:10px 20px;
+    background-color: white;
+}
+
+.notifications .item-title-notification{
+    background-color: aqua;
+    height: 50px;
+}
+.notifications .item-title-notification h5{
+    color:red;
+    padding: 5px 10px;
+}
+.notifications .item-title-notification p{
+    font-size: 12px;
+    padding: 5px 10px;
+    opacity: 0.6;
+}
+.notifications .item-statistics{
+    height: 160px;
+    display: flex;
+
+}
+.notifications .item-statistics .data{
+    padding: 10px;
+}
+
+.notifications .item-statistics .data p{
+    width: 80px;
+    font-size: 12px;
+    opacity: 0.6;
+    margin-bottom: 10px;
+    margin-top: 16px;
+}
+
+
+.box-histore{
+    height: 550px;
+    padding: 10px;
+    margin: 20px;
+    display: flex;
+}
+.detection-history{
+    width: 50%;
+    margin:10px;
+    background-color: white;
+    border-radius: 5px;
+}
+
+
+.box-report{
+    width: 50%;
+    margin:10px;
+    background-color: white;
+}
+.box-report {
+    padding:16px;
+}
+.title-detection-history{
+	height: auto;
+	width: auto;
+}
+.list-detection-history{
+	height: 90%;
+	width:100%;
+	overflow-y: auto;
+}
+
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+th, td {
+    padding: 8px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+th {
+    background-color: #f2f2f2;
+}
+thead {
+    position: sticky;
+    top: 0;
+}
+
+

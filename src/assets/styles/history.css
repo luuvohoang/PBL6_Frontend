@@ -1,0 +1,113 @@
+.history-page {
+  /* padding: 24px; */
+}
+
+.box-title {
+  margin-bottom: 24px;
+}
+
+.box-title h1 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.box-content {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.box-searchs {
+  padding: 24px;
+  border-bottom: 1px solid #eee;
+}
+
+.item-title {
+  margin-bottom: 20px;
+}
+
+.item-title h3 {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.item-title p {
+  color: #636e72;
+  font-size: 14px;
+}
+
+.search-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  align-items: end;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2d3436;
+}
+
+.form-group select,
+.form-group input,
+.react-datepicker-wrapper {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #dfe6e9;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.search-button {
+  padding: 10px 20px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.search-button:hover {
+  background: darken(var(--primary-color), 10%);
+}
+
+.box-inquiry {
+  padding: 24px;
+}
+
+.inquiry table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+}
+
+.inquiry th,
+.inquiry td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.inquiry th {
+  font-weight: 600;
+  background: #f8f9fa;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  color: #636e72;
+}

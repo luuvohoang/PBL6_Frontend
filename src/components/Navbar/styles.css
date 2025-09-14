@@ -1,0 +1,138 @@
+:root {
+    --header-height: 60px;
+    --sidebar-width: 70px;
+    --primary-color: #2e3192;
+    --secondary-color: #f5f6fa;
+    --text-color: #2d3436;
+    --text-light: #636e72;
+    --border-color: #dfe6e9;
+    --shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    /* Thay đổi từ var(--sidebar-width) thành 0 */
+    right: 0;
+    height: var(--header-height);
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+    box-shadow: var(--shadow);
+    z-index: 100;
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.header-brand i {
+    font-size: 1.5rem;
+}
+
+.sidebar {
+    position: fixed;
+    top: var(--header-height);
+    /* Thêm margin-top bằng header height */
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: var(--primary-color);
+    display: flex;
+    flex-direction: column;
+    padding: 24px 0;
+    z-index: 200;
+}
+
+.nav-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0 8px;
+}
+
+.nav-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.nav-item i {
+    font-size: 1.4rem;
+}
+
+.nav-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-item.active {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Hide label by default */
+.nav-label {
+    display: none;
+}
+
+/* Tooltip style */
+.tooltip {
+    position: absolute;
+    left: calc(100% + 10px);
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+/* Show tooltip on hover */
+.nav-item:hover .tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Arrow for tooltip */
+.tooltip::before {
+    content: '';
+    position: absolute;
+    left: -4px;
+    top: 50%;
+    transform: translateY(-50%);
+    border-width: 6px;
+    border-style: solid;
+    border-color: transparent rgba(0, 0, 0, 0.8) transparent transparent;
+}
+
+.nav-footer {
+    margin-top: auto;
+    padding: 0 8px;
+}
+
+/* Điều chỉnh main content để không bị đè bởi header */
+.main-content {
+    margin-left: var(--sidebar-width);
+    margin-top: var(--header-height);
+    padding: 0px 0px 0px 20px;
+    background-color: var(--secondary-color);
+}
