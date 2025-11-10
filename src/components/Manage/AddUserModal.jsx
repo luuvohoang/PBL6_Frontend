@@ -1,43 +1,49 @@
 import { useState } from 'react';
 
-const AddUserModal = ({ onClose, onAdd }) => {
+/**
+ * Component này giờ nhận thêm prop 'roles' (danh sách tất cả vai trò)
+ */
+const AddUserModal = ({ onClose, onAdd, roles }) => {
+  
+  // Sửa: Tên trường (field) phải khớp với UserCreationRequest DTO
   const [formData, setFormData] = useState({
-    username: '',
-    fullname: '',
+    name: '',       // Sửa: 'name' thay vì 'username'
     email: '',
-    phone: '',
     password: '',
-    roleid: ''
+    roles: []       // Sửa: 'roles' (một mảng) thay vì 'roleid'
   });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    try {
-      const response = await fetch('http://localhost:8081/api/adduser', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        onAdd({ ...formData, users_ID: data.userId });
-        onClose();
-      }
-    } catch (error) {
-      console.error('Error adding user:', error);
-    }
-  };
-
+  
+  // Hàm này xử lý các input 'text', 'email', 'password'
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  /**
+   * Thêm: Hàm này xử lý các checkbox 'roles'
+   */
+  const handleRolesChange = (e) => {
+    const { value, checked } = e.target;
+    const currentRoles = formData.roles;
+
+    if (checked) {
+      // Thêm tên role vào mảng
+      setFormData({ ...formData, roles: [...currentRoles, value] });
+    } else {
+      // Xóa tên role khỏi mảng
+      setFormData({ ...formData, roles: currentRoles.filter(roleName => roleName !== value) });
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Sửa: Không 'fetch' ở đây.
+    // Chỉ cần gọi 'onAdd' (truyền lên component cha)
+    // Manage.jsx sẽ xử lý việc gọi API.
+    onAdd(formData);
   };
 
   return (
@@ -49,30 +55,22 @@ const AddUserModal = ({ onClose, onAdd }) => {
         </div>
 
         <form onSubmit={handleSubmit}>
+          {/* Sửa: 'name' (khớp DTO) */}
           <div className="form-group">
-            <label htmlFor="username">Username:</label>
+            <label htmlFor="name">Username:</label>
             <input
               type="text"
-              id="username"
-              name="username"
-              value={formData.username}
+              id="name"
+              name="name"
+              value={formData.name}
               onChange={handleChange}
               required
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="fullname">Full Name:</label>
-            <input
-              type="text"
-              id="fullname"
-              name="fullname"
-              value={formData.fullname}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          {/* Xóa: 'fullname' (không tồn tại trong DTO) */}
 
+          {/* Giữ nguyên: 'email' */}
           <div className="form-group">
             <label htmlFor="email">Email:</label>
             <input
@@ -85,18 +83,9 @@ const AddUserModal = ({ onClose, onAdd }) => {
             />
           </div>
 
-          <div className="form-group">
-            <label htmlFor="phone">Phone:</label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-            />
-          </div>
+          {/* Xóa: 'phone' (không tồn tại trong DTO) */}
 
+          {/* Giữ nguyên: 'password' */}
           <div className="form-group">
             <label htmlFor="password">Password:</label>
             <input
@@ -109,19 +98,26 @@ const AddUserModal = ({ onClose, onAdd }) => {
             />
           </div>
 
+          {/* S-"SỬA LẠI HOÀN TOÀN: Hiển thị Checkbox cho 'roles' */}
           <div className="form-group">
-            <label htmlFor="roleid">Role:</label>
-            <select
-              id="roleid"
-              name="roleid"
-              value={formData.roleid}
-              onChange={handleChange}
-              required
-            >
-              <option value="">Select Role</option>
-              <option value="1">Admin</option>
-              <option value="2">User</option>
-            </select>
+            <label>Roles:</label>
+            {/* Lặp qua danh sách 'roles' (lấy từ API) */}
+            {roles && roles.length > 0 ? (
+              roles.map(role => (
+                <div key={role.name} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    id={`role-${role.name}`}
+                    name="roles"
+                    value={role.name} // Gửi đi TÊN (name) của Role
+                    onChange={handleRolesChange}
+                  />
+                  <label htmlFor={`role-${role.name}`}>{role.name}</label>
+                </div>
+              ))
+            ) : (
+              <p>Đang tải Roles...</p>
+            )}
           </div>
 
           <div className="modal-actions">

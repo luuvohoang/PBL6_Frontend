@@ -1,17 +1,20 @@
+import React from 'react';
+
 const UserTable = ({ users, onEdit, onDelete }) => {
-  const handleDelete = async (id) => {
-    try {
-      await fetch('http://localhost:8081/api/deleteuser', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ id }),
-      });
-      onDelete(id);
-    } catch (error) {
-      console.error('Error deleting user:', error);
+  
+  // XÓA: Toàn bộ logic 'handleDelete' (fetch) đã được xóa.
+  // Logic đó đã nằm ở component cha 'Manage.jsx'.
+
+  /**
+   * Hàm trợ giúp để hiển thị danh sách Role (vai trò)
+   * Giả sử user.roles là một mảng (Array) các chuỗi (string)
+   */
+  const formatRoles = (roles) => {
+    if (!roles || roles.length === 0) {
+      return 'N/A';
     }
+    // Lấy 'name' từ mỗi đối tượng role và nối chúng lại
+    return roles.map(role => role.name).join(', '); 
   };
 
   return (
@@ -21,22 +24,19 @@ const UserTable = ({ users, onEdit, onDelete }) => {
           <tr>
             <th>ID</th>
             <th>Username</th>
-            <th>Full Name</th>
             <th>Email</th>
-            <th>Phone</th>
-            <th>Role</th>
+            <th>Role(s)</th> {/* Sửa tên cột */}
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
+          {/* Sửa: Dùng tên trường DTO (id, name, email, roles) */}
           {users.map((user, index) => (
-            <tr key={user.users_ID}>
+            <tr key={user.id}> {/* Sửa key */}
               <td>{index + 1}</td>
-              <td>{user.users_name}</td>
-              <td>{user.full_name}</td>
-              <td>{user.email}</td>
-              <td>{user.phone}</td>
-              <td>{user.role_ID}</td>
+              <td>{user.name}</td> {/* Sửa tên trường */}
+              <td>{user.email}</td> {/* Sửa tên trường */}
+              <td>{formatRoles(user.roles)}</td> {/* Dùng hàm format mới */}
               <td className="action-buttons">
                 <button 
                   className="edit-btn"
@@ -46,7 +46,7 @@ const UserTable = ({ users, onEdit, onDelete }) => {
                 </button>
                 <button 
                   className="delete-btn"
-                  onClick={() => handleDelete(user.users_ID)}
+                  onClick={() => onDelete(user.id)} // Gọi prop từ Manage.jsx
                 >
                   Delete
                 </button>

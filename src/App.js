@@ -7,6 +7,8 @@ import Manage from './pages/Manage';
 import MultiCCTV from './pages/MultiCCTV';
 import Statistics from './pages/Statistics';
 import Profile from './pages/Profile';
+import Register from './pages/Register';
+import Login from './pages/Login';
 
 function App() {
   return (
@@ -20,6 +22,8 @@ function App() {
           <Route path="multi-cctv" element={<MultiCCTV />} />
           <Route path="profile" element={<Profile />} />
           <Route path="statistics" element={<Statistics />} />
+          <Route path="register" element={<Register />} />
+          <Route path="login" element={<Login />} />
         </Route>
       </Routes>
     </Router>

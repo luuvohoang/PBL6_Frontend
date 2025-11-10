@@ -136,3 +136,315 @@
     padding: 0px 0px 0px 20px;
     background-color: var(--secondary-color);
 }
+/* Add these new styles to your existing CSS */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.auth-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.login-btn {
+  background-color: #2691d9;
+  color: #fff;
+  border: none;
+}
+
+.login-btn:hover {
+  background-color: #1a75b5;
+}
+
+.register-btn {
+  background-color: #2691d9;
+  color: #fff;
+  border: none;
+}
+
+.register-btn:hover {
+  background-color: #1a75b5;
+}
+
+.header-profile-btn {
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.header-profile-btn:hover {
+  opacity: 0.8;
+}
+
+.notification-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.notification-btn:hover {
+  opacity: 0.8;
+}
+
+/* Add these new styles to your existing CSS file */
+
+.authenticated-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.notification-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.notification-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.profile-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.header-profile-btn {
+  color: #1a75b5;
+  font-size: 1.5rem;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+}
+
+.header-profile-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  transition: background-color 0.3s;
+}
+
+.logout-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Optional: Add animation for notifications */
+@keyframes bellShake {
+  0% { transform: rotate(0); }
+  15% { transform: rotate(5deg); }
+  30% { transform: rotate(-5deg); }
+  45% { transform: rotate(4deg); }
+  60% { transform: rotate(-4deg); }
+  75% { transform: rotate(2deg); }
+  85% { transform: rotate(-2deg); }
+  92% { transform: rotate(1deg); }
+  100% { transform: rotate(0); }
+}
+
+.notification-btn:hover i {
+  animation: bellShake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Add these new styles */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100vh;
+}
+
+.nav-menu {
+  flex-grow: 1;
+}
+
+.sidebar-footer {
+  padding: 15px 0px 45px 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-footer .logout-btn {
+  position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.sidebar-footer .logout-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-footer .logout-btn i {
+  font-size: 1.2rem;
+}
+
+/* --- CSS Cho Panel Thông báo --- */
+
+/* 1. Container (chứa cái chuông)
+   Bắt buộc phải là 'relative' để panel con (absolute) định vị theo */
+.notification-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+/* 2. Nút Chuông (Notification Button) */
+.notification-btn {
+  background: none;
+  border: none;
+  color: white; /* (Hoặc màu header của bạn) */
+  font-size: 1.25rem;
+  cursor: pointer;
+  position: relative; /* Để cái 'badge' định vị theo */
+  padding: 8px;
+}
+
+/* 3. Cái chấm đỏ (Badge) đếm số lượng */
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background-color: red;
+  color: white;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 0.7rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid white;
+}
+
+/* 4. Khung Panel (Cửa sổ dropdown)
+   Đây là phần 'linh hoạt' */
+.notification-panel {
+  position: absolute;
+  top: 100%; /* Đặt ngay dưới header */
+  right: 0;
+  width: 380px; /* Độ rộng cố định */
+  max-height: 450px; /* Chiều cao tối đa, vượt quá sẽ scroll */
+  background-color: #ffffff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column; /* Quan trọng: để list có thể cuộn */
+}
+
+/* 5. Tiêu đề của Panel */
+.notification-header {
+  padding: 12px 16px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #111;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 6. Nút "Mark all as read" (MỚI) */
+.mark-all-read-btn {
+  background: none;
+  border: none;
+  color: #007bff; /* Màu xanh (link) */
+  font-size: 0.8rem;
+  font-weight: normal;
+  cursor: pointer;
+  padding: 4px;
+}
+.mark-all-read-btn:hover {
+  text-decoration: underline;
+}
+
+/* 7. Danh sách thông báo (Phần có thể cuộn) */
+.notification-list {
+  overflow-y: auto; /* Đây là thanh cuộn (scrollbar) */
+  flex: 1; /* Cho phép nó lấp đầy không gian còn lại */
+}
+
+/* 8. Từng mục (Item) thông báo */
+.notification-item {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.notification-item:last-child {
+  border-bottom: none;
+}
+.notification-item:hover {
+  background-color: #f9f9f9;
+}
+
+/* 9. Trạng thái 'Chưa đọc' (Unread) */
+.notification-item.unread {
+  background-color: #f0f5ff; /* Màu xanh nhạt */
+}
+
+.notification-item.empty {
+  text-align: center;
+  color: #888;
+  padding: 20px;
+  cursor: default;
+}
+.notification-item.empty:hover {
+  background-color: transparent;
+}
+
+.notification-title {
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.notification-body {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.notification-time {
+  font-size: 0.75rem;
+  color: #007bff;
+}

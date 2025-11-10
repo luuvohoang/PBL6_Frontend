@@ -1,51 +1,36 @@
 import { useState, useEffect } from 'react';
 
-const EditUserModal = ({ user, onClose, onUpdate }) => {
+/**
+ * Component này giờ nhận thêm prop 'allRoles'
+ * (Manage.jsx cần được sửa để truyền prop này vào)
+ */
+const EditUserModal = ({ user, allRoles, onClose, onUpdate }) => {
+  
+  // Sửa: State phải khớp với UserUpdateRequest DTO
   const [formData, setFormData] = useState({
-    userid: '',
-    username: '',
-    fullname: '',
     email: '',
-    phone: '',
-    password: '',
-    roleid: ''
+    password: '', // Luôn rỗng khi edit
+    status: true,
+    locale: '',
+    roles: [] // Mảng các tên vai trò (ví dụ: ["ADMIN"])
   });
 
+  // Tự động điền (populate) form khi 'user' prop thay đổi
   useEffect(() => {
     if (user) {
       setFormData({
-        userid: user.users_ID,
-        username: user.users_name,
-        fullname: user.full_name,
-        email: user.email,
-        phone: user.phone,
-        password: '', // Password field is empty by default when editing
-        roleid: user.role_ID
+        email: user.email || '',
+        password: '', // Luôn để trống
+        status: user.status === true, // Đảm bảo là boolean
+        locale: user.locale || '',
+        // Sửa: 'user.roles' là mảng đối tượng [{name: 'ADMIN'}]
+        // Chúng ta cần mảng tên ['ADMIN']
+        roles: user.roles ? user.roles.map(role => role.name) : []
       });
     }
-  }, [user]);
+  }, [user]); // Chạy lại khi 'user' thay đổi
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    try {
-      const response = await fetch('http://localhost:8081/api/modifyuser', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-      
-      if (response.ok) {
-        onUpdate(formData);
-        onClose();
-      }
-    } catch (error) {
-      console.error('Error updating user:', error);
-    }
-  };
-
+  // Xử lý các input text/email/password
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -53,39 +38,70 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
     });
   };
 
+  // Xử lý checkbox 'status'
+  const handleStatusChange = (e) => {
+    setFormData({
+      ...formData,
+      status: e.target.checked
+    });
+  };
+
+  // Xử lý các checkbox 'roles'
+  const handleRolesChange = (e) => {
+    const { value, checked } = e.target;
+    const currentRoles = formData.roles;
+
+    if (checked) {
+      setFormData({ ...formData, roles: [...currentRoles, value] });
+    } else {
+      setFormData({ ...formData, roles: currentRoles.filter(roleName => roleName !== value) });
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Tạo payload (dữ liệu gửi đi)
+    const payload = {
+      ...formData
+    };
+
+    // QUAN TRỌNG: Nếu password rỗng, xóa nó khỏi payload
+    // Backend Service sẽ hiểu là "không thay đổi mật khẩu"
+    if (!payload.password || payload.password.trim() === '') {
+      delete payload.password;
+    }
+    
+    // Gọi hàm 'onUpdate' (truyền lên Manage.jsx)
+    onUpdate(payload);
+  };
+
   return (
     <div className="modal-overlay">
       <div className="modal-content">
         <div className="modal-header">
-          <h2>Edit User</h2>
+          {/* Hiển thị tên user đang sửa */}
+          <h2>Edit User: {user.name}</h2> 
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
 
         <form onSubmit={handleSubmit}>
+          
+          {/* Tên đăng nhập (Username) - Không cho phép sửa */}
           <div className="form-group">
             <label htmlFor="username">Username:</label>
             <input
               type="text"
               id="username"
               name="username"
-              value={formData.username}
-              onChange={handleChange}
-              required
+              value={user.name || ''} // Hiển thị tên từ 'user' prop
+              disabled // Không cho sửa
             />
           </div>
-
-          <div className="form-group">
-            <label htmlFor="fullname">Full Name:</label>
-            <input
-              type="text"
-              id="fullname"
-              name="fullname"
-              value={formData.fullname}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
+          
+          {/* Xóa: fullname (không có trong DTO) */}
+          
+          {/* Sửa: 'email' (khớp DTO) */}
           <div className="form-group">
             <label htmlFor="email">Email:</label>
             <input
@@ -97,47 +113,71 @@ const EditUserModal = ({ user, onClose, onUpdate }) => {
               required
             />
           </div>
+          
+          {/* Xóa: 'phone' (không có trong DTO) */}
 
+          {/* Sửa: 'password' (khớp DTO) */}
           <div className="form-group">
-            <label htmlFor="phone">Phone:</label>
-            <input
-              type="tel"
-              id="phone"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">
-              Password: {formData.userid && '(Leave blank to keep current password)'}
-            </label>
+            <label htmlFor="password">Password:</label>
             <input
               type="password"
               id="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder={formData.userid ? 'Leave blank to keep current password' : ''}
-              required={!formData.userid}
+              placeholder="Để trống nếu không muốn đổi"
             />
           </div>
 
+          {/* Thêm: 'locale' */}
           <div className="form-group">
-            <label htmlFor="roleid">Role:</label>
-            <select
-              id="roleid"
-              name="roleid"
-              value={formData.roleid}
+            <label htmlFor="locale">Locale:</label>
+            <input
+              type="text"
+              id="locale"
+              name="locale"
+              value={formData.locale}
               onChange={handleChange}
-              required
-            >
-              <option value="">Select Role</option>
-              <option value="1">Admin</option>
-              <option value="2">User</option>
-            </select>
+              placeholder="e.g., en_US"
+            />
+          </div>
+
+          {/* Thêm: 'status' (dạng checkbox) */}
+          <div className="form-group">
+            <label>Status:</label>
+            <div className="checkbox-item">
+              <input
+                type="checkbox"
+                id="status"
+                name="status"
+                checked={formData.status}
+                onChange={handleStatusChange}
+              />
+              <label htmlFor="status">Active</label>
+            </div>
+          </div>
+
+          {/* Sửa: 'roles' (dạng checkboxes) */}
+          <div className="form-group">
+            <label>Roles:</label>
+            {allRoles && allRoles.length > 0 ? (
+              allRoles.map(role => (
+                <div key={role.name} className="checkbox-item">
+                  <input
+                    type="checkbox"
+                    id={`role-edit-${role.name}`}
+                    name="roles"
+                    value={role.name}
+                    // Kiểm tra xem role.name có trong mảng formData.roles không
+                    checked={formData.roles.includes(role.name)}
+                    onChange={handleRolesChange}
+                  />
+                  <label htmlFor={`role-edit-${role.name}`}>{role.name}</label>
+                </div>
+              ))
+            ) : (
+              <p>Đang tải Roles...</p>
+            )}
           </div>
 
           <div className="modal-actions">

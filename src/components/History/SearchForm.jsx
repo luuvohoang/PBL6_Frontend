@@ -1,56 +1,50 @@
-import { useState, useEffect } from 'react';
-import DatePicker from 'react-datepicker';
+// File: src/components/History/SearchForm.jsx
+import { useState } from 'react';
+import DatePicker from 'react-datepicker'; // Bạn đã có thư viện này
 import "react-datepicker/dist/react-datepicker.css";
 
-const SearchForm = ({ cameraProjects, onSearch }) => {
-  const [selectedSite, setSelectedSite] = useState('');
-  const [selectedChannel, setSelectedChannel] = useState('');
-  const [fromDate, setFromDate] = useState(null);
-  const [toDate, setToDate] = useState(null);
-
-  // Get unique sites
-  const sites = [...new Set(cameraProjects.map(item => item.project_name))];
+const SearchForm = ({ 
+  projects,       // Prop mới: Danh sách dự án
+  cameras,        // Prop mới: Danh sách camera
+  loadingCameras, // Prop mới: Trạng thái tải camera
+  onProjectChange,  // Prop mới: Hàm gọi khi đổi dự án
+  onSearch        // Prop cũ: Hàm gọi khi tìm kiếm
+}) => {
   
-  // Get channels for selected site
-  const channels = cameraProjects
-    .filter(item => item.project_name === selectedSite)
-    .map(item => item.camera_name);
+  // --- State mới, khớp với AlertSearchRequest DTO ---
+  const [projectId, setProjectId] = useState('');
+  const [cameraId, setCameraId] = useState('');
+  const [happenedAfter, setHappenedAfter] = useState(null); // 'fromDate' cũ
+  const [happenedBefore, setHappenedBefore] = useState(null); // 'toDate' cũ
+  const [type, setType] = useState('');
+  const [severity, setSeverity] = useState('');
+  const [status, setStatus] = useState('');
 
-  useEffect(() => {
-    if (sites.length > 0 && !selectedSite) {
-      setSelectedSite(sites[0]);
-    }
-  }, [sites]);
-
-  useEffect(() => {
-    if (channels.length > 0) {
-      setSelectedChannel(channels[0]);
-    }
-  }, [selectedSite]);
+  // --- Hàm xử lý mới ---
+  const handleProjectChange = (e) => {
+    const newProjectId = e.target.value;
+    setProjectId(newProjectId);
+    setCameraId(''); // Reset ô chọn camera
+    onProjectChange(newProjectId); // Báo cho History.jsx (cha) tải camera
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (!projectId) {
+      alert("Vui lòng chọn một Dự án (Project).");
+      return;
+    }
     
-    if (!selectedChannel) {
-      alert("Please select an onsite.");
-      return;
-    }
-
-    if (!fromDate || !toDate) {
-      alert("Please select both start and end dates.");
-      return;
-    }
-
-    if (fromDate > toDate) {
-      alert("End date must be greater than start date");
-      return;
-    }
-
+    // Gọi onSearch với object đầy đủ (History.jsx sẽ xử lý .toISOString())
     onSearch({
-      site: selectedSite,
-      channel: selectedChannel,
-      fromDate: fromDate.toISOString(),
-      toDate: toDate.toISOString()
+      projectId,
+      cameraId: cameraId || null, // Gửi null nếu "Tất cả Camera"
+      happenedAfter: happenedAfter,
+      happenedBefore: happenedBefore,
+      type: type || null,
+      severity: severity || null,
+      status: status || null
     });
   };
 
@@ -62,54 +56,104 @@ const SearchForm = ({ cameraProjects, onSearch }) => {
       </div>
 
       <form className="search-form" onSubmit={handleSubmit}>
+        
+        {/* SỬA: Lọc theo Project (Dự án) */}
         <div className="form-group">
-          <label>Onsite</label>
+          <label>Project (Dự án):</label>
           <select 
-            value={selectedSite}
-            onChange={(e) => setSelectedSite(e.target.value)}
+            value={projectId}
+            onChange={handleProjectChange}
+            required
           >
-            {sites.map(site => (
-              <option key={site} value={site}>{site}</option>
+            <option value="">-- Chọn Dự án --</option>
+            {projects.map(project => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
             ))}
           </select>
         </div>
 
+        {/* SỬA: Lọc theo Camera (Kênh) */}
         <div className="form-group">
-          <label>Channel</label>
+          <label>Camera (Kênh):</label>
           <select
-            value={selectedChannel}
-            onChange={(e) => setSelectedChannel(e.target.value)}
+            value={cameraId}
+            onChange={(e) => setCameraId(e.target.value)}
+            disabled={!projectId || loadingCameras} // Tắt khi đang tải
           >
-            {channels.map(channel => (
-              <option key={channel} value={channel}>{channel}</option>
-            ))}
+            <option value="">-- Tất cả Camera --</option>
+            {loadingCameras ? (
+              <option>Đang tải...</option>
+            ) : (
+              cameras.map(camera => (
+                <option key={camera.id} value={camera.id}>
+                  {camera.name}
+                </option>
+              ))
+            )}
           </select>
         </div>
 
+        {/* Giữ nguyên Date Pickers (nhưng đổi state) */}
         <div className="form-group">
-          <label>From Date</label>
+          <label>Từ ngày (From Date):</label>
           <DatePicker
-            selected={fromDate}
-            onChange={date => setFromDate(date)}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="Select start date"
+            selected={happenedAfter}
+            onChange={date => setHappenedAfter(date)}
+            dateFormat="dd/MM/yyyy HH:mm"
+            showTimeSelect
+            placeholderText="Chọn ngày bắt đầu"
           />
         </div>
 
         <div className="form-group">
-          <label>To Date</label>
+          <label>Đến ngày (To Date):</label>
           <DatePicker
-            selected={toDate}
-            onChange={date => setToDate(date)}
-            dateFormat="dd/MM/yyyy"
-            placeholderText="Select end date"
-            minDate={fromDate}
+            selected={happenedBefore}
+            onChange={date => setHappenedBefore(date)}
+            dateFormat="dd/MM/yyyy HH:mm"
+            showTimeSelect
+            placeholderText="Chọn ngày kết thúc"
+            minDate={happenedAfter}
           />
+        </div>
+
+        {/* THÊM: Các bộ lọc (filters) mà backend hỗ trợ */}
+        <div className="form-group">
+          <label>Loại (Type):</label>
+          <input 
+            type="text" 
+            value={type} 
+            onChange={e => setType(e.target.value)}
+            placeholder="e.g., NO_HELMET"
+          />
+        </div>
+        
+        <div className="form-group">
+          <label>Mức độ (Severity):</label>
+          <select value={severity} onChange={e => setSeverity(e.target.value)}>
+            <option value="">-- Tất cả --</option>
+            <option value="CRITICAL">Critical</option>
+            <option value="HIGH">High</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="LOW">Low</option>
+          </select>
+        </div>
+        
+        <div className="form-group">
+          <label>Trạng thái (Status):</label>
+          <select value={status} onChange={e => setStatus(e.target.value)}>
+            <option value="">-- Tất cả --</option>
+            <option value="NEW">New</option>
+            <option value="UNDER_REVIEW">Under Review</option>
+            <option value="RESOLVED">Resolved</option>
+            <option value="DISMISSED">Dismissed</option>
+          </select>
         </div>
 
         <button type="submit" className="search-button">
           Search
-          <i className="fas fa-search"></i>
         </button>
       </form>
     </div>

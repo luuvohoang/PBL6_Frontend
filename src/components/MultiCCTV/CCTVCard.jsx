@@ -1,60 +1,75 @@
-import { useState } from 'react';
+// File: src/components/MultiCCTV/CCTVCard.jsx
+import React from 'react';
+import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder'; // Icon (ví dụ)
+import BookmarkIcon from '@mui/icons-material/Bookmark'; // Icon (ví dụ)
+
+/**
+ * Hàm trợ giúp (helper) để chuyển đổi link YouTube
+ */
+const convertYouTubeUrlToEmbed = (url) => {
+  if (!url) return '';
+  let videoId = '';
+  try {
+    const urlObj = new URL(url);
+    if (urlObj.hostname === 'youtu.be') {
+      videoId = urlObj.pathname.substring(1);
+    } else if (urlObj.hostname.includes('youtube.com')) {
+      videoId = urlObj.searchParams.get('v');
+    }
+    if (videoId) {
+      // Thêm ?autoplay=1&mute=1 để video tự chạy và tắt tiếng (quan trọng)
+      return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
+    }
+  } catch (error) {
+    console.error("Link YouTube không hợp lệ:", url, error);
+    return '';
+  }
+  return url; // Trả về gốc nếu không phân tích được
+};
+
 
 const CCTVCard = ({ camera, isBookmarked, onBookmark }) => {
-    const [isLoading, setIsLoading] = useState(true);
-    const [hasError, setHasError] = useState(false);
+  
+  // SỬA LỖI 3: Chuyển đổi link 'rtspUrl' (link YouTube) sang link Embed
+  const videoEmbedUrl = convertYouTubeUrlToEmbed(camera.rtspUrl);
 
-    const handleIframeLoad = () => {
-        setIsLoading(false);
-    };
+  return (
+    <div className="cctv-card">
+      
+      {/* 1. Phần Video (Iframe) */}
+      <div className="cctv-video-container">
+        {videoEmbedUrl ? (
+          <iframe
+            src={videoEmbedUrl}
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            title={camera.name}
+          />
+        ) : (
+          <div className="video-placeholder">Link YouTube không hợp lệ</div>
+        )}
+      </div>
 
-    const handleIframeError = () => {
-        setIsLoading(false);
-        setHasError(true);
-    };
-
-    return (
-        <div className="cctv-card">
-            <div className="video-container">
-                {isLoading && (
-                    <div className="loading-overlay">
-                        <span>Loading camera feed...</span>
-                    </div>
-                )}
-
-                {hasError && (
-                    <div className="error-overlay">
-                        <span>Failed to load camera feed</span>
-                    </div>
-                )}
-
-                <iframe
-                    className="video-frame"
-                    src={camera.IP_address}
-                    frameBorder="0"
-                    allow="autoplay"
-                    title={camera.Camera_name}
-                    onLoad={handleIframeLoad}
-                    onError={handleIframeError}
-                />
-            </div>
-
-            <div className="card-info">
-                <div className="info-row">
-                    <div>
-                        <div className="project-name">{camera.Project_name}</div>
-                        <div className="camera-name">{camera.Camera_name}</div>
-                    </div>
-                    <button
-                        className={`bookmark-btn ${isBookmarked ? 'active' : ''}`}
-                        onClick={onBookmark}
-                    >
-                        {isBookmarked ? 'Bookmarked' : 'Bookmark'}
-                    </button>
-                </div>
-            </div>
+      {/* 2. Phần Thông tin */}
+      <div className="cctv-info">
+        <div className="cctv-details">
+          {/* SỬA LỖI 4: Dùng 'camera.name' (tên trường đúng) */}
+          <span className="camera-name">{camera.name}</span>
+          {/* SỬA LỖI 5: Dùng 'camera.location' (tên trường đúng) */}
+          <span className="camera-location">{camera.location}</span>
         </div>
-    );
+        
+        {/* 3. Nút Bookmark */}
+        <button className="bookmark-btn" onClick={onBookmark}>
+          {isBookmarked ? 
+            <BookmarkIcon style={{ color: '#ffc107' }} /> : 
+            <BookmarkBorderIcon />
+          }
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export default CCTVCard;

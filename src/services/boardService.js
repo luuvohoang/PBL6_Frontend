@@ -1,7 +1,6 @@
-boardService.js
 import axios from 'axios';
 
-const BASE_URL = 'http://localhost:8081/api';
+const BASE_URL = 'http://localhost:8080/safetyconstruction/api';
 
 export const getDashboardData = async () => {
   try {

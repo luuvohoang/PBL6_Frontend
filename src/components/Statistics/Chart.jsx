@@ -1,84 +1,62 @@
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-} from 'chart.js';
+// File: src/components/Statistics/Chart.jsx
+import React from 'react';
+// Cần import Pie và Bar
+import { Pie, Bar } from 'react-chartjs-2'; 
+import { Box, Typography } from '@mui/material';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
+// (Đảm bảo file Statistics.jsx (cha) đã đăng ký ChartJS)
+// ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
-const Chart = ({ statistics }) => {
-  const data = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    datasets: [
-      {
-        label: 'BODY',
-        data: statistics.statis1,
-        borderColor: 'rgba(255, 99, 132, 1)',
-        backgroundColor: 'rgba(255, 99, 132, 0.2)',
-        yAxisID: 'y',
-      },
-      {
-        label: 'AREA',
-        data: statistics.statis2,
-        borderColor: 'rgba(54, 162, 235, 1)',
-        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-        yAxisID: 'y'
-      },
-      {
-        label: 'MACHINE',
-        data: statistics.statis3,
-        borderColor: 'rgb(153, 102, 255)',
-        backgroundColor: 'rgba(54, 162, 235, 0.2)',
-        yAxisID: 'y'
-      }
-    ]
-  };
 
-  const options = {
+const Chart = ({ pieData, barData }) => {
+  
+  // Tùy chọn cho biểu đồ cột
+  const barOptions = {
     responsive: true,
-    interaction: {
-      mode: 'index',
-      intersect: false,
-    },
-    stacked: false,
     plugins: {
+      legend: { position: 'top' },
       title: {
         display: true,
-        text: 'Detection Statistics'
-      }
+        text: 'Số lượng vi phạm theo ngày trong tuần',
+      },
     },
-    scales: {
-      y: {
-        type: 'linear',
+  };
+  
+  // Tùy chọn cho biểu đồ tròn
+  const pieOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      title: {
         display: true,
-        position: 'left',
+        text: 'Tỷ lệ các loại vi phạm',
       },
-      y1: {
-        type: 'linear',
-        display: true,
-        position: 'right',
-        grid: {
-          drawOnChartArea: false,
-        },
-      },
-    }
+    },
   };
 
-  return <Line data={data} options={options} />;
+  return (
+    <Box className="chart-container" sx={{ display: 'flex', gap: '2rem', width: '100%' }}>
+      
+      {/* Biểu đồ tròn (By Type) */}
+      <Box sx={{ width: '40%' }}>
+        {pieData ? (
+          <Pie data={pieData} options={pieOptions} />
+        ) : (
+          <Typography>Chưa có dữ liệu cho biểu đồ tròn.</Typography>
+        )}
+      </Box>
+      
+      {/* Biểu đồ cột (By Weekday) */}
+      <Box sx={{ width: '60%' }}>
+        {barData ? (
+          <Bar options={barOptions} data={barData} />
+        ) : (
+          <Typography>Chưa có dữ liệu cho biểu đồ cột.</Typography>
+        )}
+      </Box>
+
+    </Box>
+  );
 };
 
 export default Chart;

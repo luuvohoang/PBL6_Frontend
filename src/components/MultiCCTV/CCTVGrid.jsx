@@ -1,16 +1,14 @@
 import { useState } from 'react';
-import CCTVCard from './CCTVCard';
+import CCTVCard from './CCTVCard'; // File này chúng ta sẽ sửa ở bước 2
 
 const CCTVGrid = ({ cameras, bookmarkedItems, onBookmark }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const camerasPerPage = 8; // 4x2 grid
 
-  // Get current cameras
   const indexOfLastCamera = currentPage * camerasPerPage;
   const indexOfFirstCamera = indexOfLastCamera - camerasPerPage;
   const currentCameras = cameras.slice(indexOfFirstCamera, indexOfLastCamera);
 
-  // Calculate total pages
   const totalPages = Math.ceil(cameras.length / camerasPerPage);
 
   const handlePageChange = (pageNumber) => {
@@ -22,41 +20,26 @@ const CCTVGrid = ({ cameras, bookmarkedItems, onBookmark }) => {
       <div className="cctv-grid">
         {currentCameras.map((camera) => (
           <CCTVCard
-            key={`${camera.Project_name}-${camera.Camera_name}`}
+            // SỬA LỖI 1: 'key' phải là một giá trị duy nhất như 'camera.id'
+            key={camera.id}
             camera={camera}
+            // SỬA LỖI 2: Logic bookmark phải so sánh 'id'
             isBookmarked={bookmarkedItems.some(
-              item => 
-                item.Camera_name === camera.Camera_name && 
-                item.Project_name === camera.Project_name
+              item => item.id === camera.id
             )}
             onBookmark={() => onBookmark(camera)}
           />
         ))}
-        {/* Fill empty slots with placeholder cards if needed */}
+        {/* Fill empty slots */}
         {Array(8 - currentCameras.length).fill(0).map((_, index) => (
           <div key={`empty-${index}`} className="cctv-card empty" />
         ))}
       </div>
 
+      {/* Pagination (Giữ nguyên) */}
       {totalPages > 1 && (
         <div className="pagination">
-          <button
-            className="page-btn"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            &lt;&lt;
-          </button>
-          <span className="page-number">
-            {currentPage} / {totalPages}
-          </span>
-          <button
-            className="page-btn"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            &gt;&gt;
-          </button>
+           {/* ... (code pagination của bạn) ... */}
         </div>
       )}
     </>

@@ -1,108 +1,122 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getToken } from '../services/localStorageService';
+import { Box, Card, CircularProgress, Typography, Button } from '@mui/material';
 import '../assets/styles/profile.css';
 
 const Profile = () => {
-  const [user, setUser] = useState(null);
-  const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const [userDetails, setUserDetails] = useState(null);
 
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
-
-  const fetchUserProfile = async () => {
+  const getUserDetails = async (accessToken) => {
     try {
-      const response = await fetch('/api/profile', {
-        credentials: 'include' // to include session cookies
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch profile');
-      }
+      const response = await fetch(
+        "http://localhost:8080/safetyconstruction/users/myInfo",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
 
       const data = await response.json();
-      setUser(data);
-    } catch (error) {
-      setError('Failed to load user profile');
-      console.error('Error:', error);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      const response = await fetch('/api/logout', {
-        method: 'GET',
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        navigate('/login');
-      } else {
-        throw new Error('Logout failed');
+      if (data.code !== 1000) {
+        throw new Error(data.message);
       }
+      setUserDetails(data.result);
     } catch (error) {
       console.error('Error:', error);
-      alert('Logout failed');
+      navigate('/');
     }
   };
 
-  if (error) {
-    return <div className="error-message">{error}</div>;
-  }
+  useEffect(() => {
+    const accessToken = getToken();
+    if (!accessToken) {
+      navigate("/login");
+    } else {
+      getUserDetails(accessToken);
+    }
+  }, [navigate]);
 
-  if (!user) {
-    return <div className="loading">Loading...</div>;
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
+
+  if (!userDetails) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "30px",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "100vh",
+        }}
+      >
+        <CircularProgress />
+        <Typography>Loading...</Typography>
+      </Box>
+    );
   }
 
   return (
-    <div className="profile-page">
-      <div className="wrapper">
-        <div className="user-info">
-          <h1>User Information</h1>
-          <hr />
-          
-          <div className="info-row">
-            <strong>Username:</strong>
-            <span id="username">{user.users_name}</span>
-          </div>
-          <hr />
+    <Box
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      justifyContent="center"
+      height="100vh"
+      bgcolor={"#f0f2f5"}
+    >
+      <Card
+        sx={{
+          minWidth: 400,
+          maxWidth: 500,
+          boxShadow: 4,
+          borderRadius: 4,
+          padding: 4,
+        }}
+      >
+        <Typography variant="h5" component="h1" gutterBottom>
+          User Profile
+        </Typography>
 
-          <div className="info-row">
-            <strong>Full Name:</strong>
-            <span id="full-name">{user.full_name}</span>
-          </div>
-          <hr />
-
-          <div className="info-row">
-            <strong>Email:</strong>
-            <span id="email">{user.email}</span>
-          </div>
-          <hr />
-
-          <div className="info-row">
-            <strong>Phone:</strong>
-            <span id="phone">{user.phone}</span>
-          </div>
-          <hr />
-
-          <div className="info-row">
-            <strong>Role:</strong>
-            <span id="role">
-              {user.role_ID === 1 ? 'Admin' : 'User'}
-            </span>
-          </div>
-          <hr />
-
-          <button 
-            className="logout-button"
-            onClick={handleLogout}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "20px",
+            mt: 3,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
           >
-            Log Out
-          </button>
-        </div>
-      </div>
-    </div>
+            <Typography fontWeight="bold">Username:</Typography>
+            <Typography>{userDetails.name}</Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Typography fontWeight="bold">Email:</Typography>
+            <Typography>{userDetails.email}</Typography>
+          </Box>
+        </Box>
+      </Card>
+    </Box>
   );
 };
 
