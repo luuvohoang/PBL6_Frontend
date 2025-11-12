@@ -7,7 +7,7 @@ import CCTVGrid from '../components/MultiCCTV/CCTVGrid';
 import '../assets/styles/multi_cctv.css';
 
 // URL Gốc của API Backend
-const API_BASE_URL = "http://localhost:8080/safetyconstruction/api";
+import { projectsApi, camerasApi } from '../services/api';
 
 const MultiCCTV = () => {
   const navigate = useNavigate();
@@ -39,102 +39,93 @@ const MultiCCTV = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`${API_BASE_URL}/projects`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const data = await response.json();
+        // --- SỬA LỖI: Dùng projectsApi (đã có interceptor) ---
+        // (Không cần 'headers', interceptor tự làm)
+        const response = await projectsApi.getAll(); 
+        const data = response.data; // axios trả về trong 'data'
+        // --------------------------------------------------
+        
         if (data.code !== 1000) throw new Error(data.message);
         
         const projectList = data.result.content || [];
         setProjects(projectList); 
         
-        // --- SỬA LỖI 2: Đặt 'activeSection' một cách thông minh ---
+        // (Logic 'activeSection' thông minh giữ nguyên)
         if (projectList.length > 0) {
-          // Tự động chọn dự án ĐẦU TIÊN làm mặc định
           setActiveSection(projectList[0].id); 
         } else {
-          // Nếu user không thuộc dự án nào, quay về 'View All'
-          // (Nó sẽ gọi API /api/cameras và bị 403, nhưng đó là logic đúng)
           setActiveSection('cctv-view-all'); 
         }
-        // --------------------------------------------------
         
       } catch (err) {
+        // Interceptor đã xử lý 401
         console.error('Error fetching projects:', err);
-        setError(err.message);
-        setLoading(false); // Phải tắt loading nếu lỗi ở đây
+        setError(err.response ? err.response.data.message : err.message);
+        setLoading(false);
       }
-      // Không tắt loading ở đây, đợi useEffect 3 chạy xong
     };
     fetchProjects();
   }, [token]);
 
-  useEffect(() => {
-  if (!token) return;
+//   useEffect(() => {
+//   if (!token) return;
 
-  const fetchUser = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await response.json();
-      if (data.code !== 1000) throw new Error(data.message);
+//   const fetchUser = async () => {
+//     try {
+//       const response = await fetch(`${API_BASE_URL}/auth/me`, {
+//         headers: { Authorization: `Bearer ${token}` }
+//       });
+//       const data = await response.json();
+//       if (data.code !== 1000) throw new Error(data.message);
 
-      setUserRole(data.result.role); // giả sử API trả về role ở đây
-    } catch (err) {
-      console.error("Error fetching user info:", err);
-      setUserRole(null);
-    }
-  };
+//       setUserRole(data.result.role); // giả sử API trả về role ở đây
+//     } catch (err) {
+//       console.error("Error fetching user info:", err);
+//       setUserRole(null);
+//     }
+//   };
 
-  fetchUser();
-}, [token]);
+//   fetchUser();
+// }, [token]);
 
   
   useEffect(() => {
-    // SỬA LỖI 3: Chỉ chạy khi 'activeSection' đã được set (không còn là null)
     if (!token || !activeSection) return; 
 
     const fetchCameras = async () => {
       setLoading(true);
       setError(null);
-      let url = '';
-
-      if (activeSection === 'cctv-view-all') {
-        url = `${API_BASE_URL}/cameras`; // (Sẽ bị 403 nếu user không phải ADMIN)
-      } else if (activeSection === 'show-bookmark') {
-        setCameras(bookmarkedItems);
-        setLoading(false);
-        return;
-      } else {
-        // activeSection là một ID của Project (ví dụ: 1)
-        url = `${API_BASE_URL}/projects/${activeSection}/cameras`; 
-      }
+      
+      // (Biến 'url' không còn cần thiết)
 
       try {
-        const response = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        // KIỂM TRA LỖI 403 (Forbidden)
-        if (response.status === 403) {
-            throw new Error("You do not have permission to view these cameras.");
+        // --- SỬA LỖI: Dùng camerasApi ---
+        let response;
+        if (activeSection === 'cctv-view-all') {
+          response = await camerasApi.getAllGlobal(); // Gọi API Toàn cục
+        } else if (activeSection === 'show-bookmark') {
+          setCameras(bookmarkedItems);
+          setLoading(false);
+          return;
+        } else {
+          response = await camerasApi.getAllByProject(activeSection); // Gọi API lồng nhau
         }
+        // ---------------------------------
         
-        const data = await response.json();
+        const data = response.data; // axios trả về trong 'data'
         if (data.code !== 1000) throw new Error(data.message);
         
         setCameras(data.result.content);
       } catch (err) {
+        // Interceptor đã xử lý 401
         console.error('Error fetching cameras:', err.message);
-        setError(err.message);
+        setError(err.response ? err.response.data.message : err.message);
       }
       setLoading(false);
     };
 
     fetchCameras();
-    // Bỏ 'projects' và 'bookmarkedItems' khỏi dependency array
-  }, [activeSection, token]);// Chạy lại khi section thay đổi
+  }, [activeSection, token, bookmarkedItems]);
 
   // 4. Xử lý Bookmark (Sửa lại để dùng 'id')
   const handleBookmark = (camera) => {

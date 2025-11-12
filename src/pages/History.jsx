@@ -1,4 +1,3 @@
-// File: src/pages/History.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getToken } from '../services/localStorageService';
@@ -7,30 +6,31 @@ import SearchForm from '../components/History/SearchForm';
 import HistoryTable from '../components/History/HistoryTable';
 import '../assets/styles/history.css';
 
-// URL Gốc của API Backend
-const API_BASE_URL = "http://localhost:8080/safetyconstruction/api";
+// --- SỬA LỖI: IMPORT API SERVICE ---
+import { projectsApi, camerasApi, alertsApi } from '../services/api'; 
+// (Giả sử file apiService.js của bạn được đổi tên thành 'api.js')
+
+// (Xóa API_BASE_URL, vì apiService đã có)
 
 const History = () => {
   const navigate = useNavigate();
   const [token, setToken] = useState(getToken());
 
-  // --- State Dữ liệu ---
-  const [projects, setProjects] = useState([]);         // Danh sách dự án
-  const [camerasInProject, setCamerasInProject] = useState([]); // Cameras trong dự án đang chọn
-  const [alerts, setAlerts] = useState([]);             // Kết quả tìm kiếm (lịch sử)
-
-  // --- State Giao diện ---
+  // (Các state Dữ liệu và Giao diện giữ nguyên)
+  const [projects, setProjects] = useState([]);
+  const [camerasInProject, setCamerasInProject] = useState([]);
+  const [alerts, setAlerts] = useState([]);
   const [loadingProjects, setLoadingProjects] = useState(true);
   const [loadingCameras, setLoadingCameras] = useState(false);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const [error, setError] = useState(null);
 
-  // 1. Kiểm tra xác thực (Giống Profile.jsx)
+  // 1. Kiểm tra xác thực (Giữ nguyên)
   useEffect(() => {
     if (!token) navigate("/login");
   }, [token, navigate]);
 
-  // 2. Tải danh sách Projects (Dự án) khi component được tải
+  // 2. Tải danh sách Projects (SỬA LẠI)
   useEffect(() => {
     if (!token) return;
 
@@ -38,14 +38,18 @@ const History = () => {
       setLoadingProjects(true);
       setError(null);
       try {
-        const headers = { Authorization: `Bearer ${token}` };
-        const response = await fetch(`${API_BASE_URL}/projects`, { headers });
-        const data = await response.json();
+        // --- SỬA LỖI: Dùng projectsApi (đã có interceptor) ---
+        // (Không cần 'headers', interceptor tự làm)
+        const response = await projectsApi.getAll(); 
+        const data = response.data; // axios trả về trong 'data'
+        // --------------------------------------------------
+
         if (data.code !== 1000) throw new Error(data.message);
-        setProjects(data.result.content || []); // Dùng .content vì là Page
+        setProjects(data.result.content || []);
       } catch (err) {
+        // Interceptor đã xử lý 401
         console.error('Error fetching projects:', err);
-        setError(err.message);
+        setError(err.response ? err.response.data.message : err.message);
       }
       setLoadingProjects(false);
     };
@@ -54,35 +58,37 @@ const History = () => {
   }, [token]);
 
   /**
-   * 3. Được gọi bởi SearchForm khi người dùng CHỌN một Dự án.
-   * Tải danh sách camera cho dự án đó.
+   * 3. Tải danh sách camera (SỬA LẠI)
    */
   const handleProjectChange = async (projectId) => {
     if (!projectId) {
-      setCamerasInProject([]); // Xóa danh sách camera nếu bỏ chọn
+      setCamerasInProject([]);
       return;
     }
     
     setLoadingCameras(true);
     try {
-      const headers = { Authorization: `Bearer ${token}` };
-      const response = await fetch(`${API_BASE_URL}/projects/${projectId}/cameras`, { headers });
-      const data = await response.json();
+        // --- SỬA LỖI: Dùng camerasApi (đã có interceptor) ---
+      const response = await camerasApi.getAllByProject(projectId);
+      const data = response.data;
+        // --------------------------------------------------
       if (data.code !== 1000) throw new Error(data.message);
       setCamerasInProject(data.result.content || []);
     } catch (err) {
       console.error('Error fetching cameras:', err);
-      setError(err.message);
+      setError(err.response ? err.response.data.message : err.message);
     }
     setLoadingCameras(false);
   };
 
   /**
-   * 4. Được gọi bởi SearchForm khi người dùng nhấn "Search".
-   * 'searchParams' là object: { projectId, cameraId, happenedAfter, happenedBefore }
+   * 4. Xử lý tìm kiếm (SỬA LẠI)
    */
   const handleSearch = async (searchParams) => {
-    if (!searchParams.projectId) {
+    // Tách projectId ra khỏi các query params khác
+    const { projectId, ...params } = searchParams;
+
+    if (!projectId) {
       setError("Vui lòng chọn một dự án.");
       return;
     }
@@ -90,40 +96,30 @@ const History = () => {
     setLoadingSearch(true);
     setError(null);
 
-    // Chuyển đổi params thành query string
-    // (Backend AlertSearchRequest mong đợi các query param)
-    const params = new URLSearchParams();
-    
-    // (projectId không cần, vì nó đã nằm trong URL)
-    if (searchParams.cameraId) params.append('cameraId', searchParams.cameraId);
-    if (searchParams.type) params.append('type', searchParams.type);
-    if (searchParams.severity) params.append('severity', searchParams.severity);
-    if (searchParams.status) params.append('status', searchParams.status);
-    
-    // Chuyển đổi ngày sang định dạng ISO 8601 (Instant)
-    if (searchParams.happenedAfter) {
-      params.append('happenedAfter', new Date(searchParams.happenedAfter).toISOString());
+    // Chuyển đổi ngày sang ISO String (nếu tồn tại)
+    if (params.happenedAfter) {
+      params.happenedAfter = new Date(params.happenedAfter).toISOString();
     }
-    if (searchParams.happenedBefore) {
-      params.append('happenedBefore', new Date(searchParams.happenedBefore).toISOString());
+    if (params.happenedBefore) {
+      params.happenedBefore = new Date(params.happenedBefore).toISOString();
     }
     
-    // URL API (dùng API lồng nhau của Project)
-    const url = `${API_BASE_URL}/projects/${searchParams.projectId}/alerts?${params.toString()}`;
-
     try {
-      const headers = { Authorization: `Bearer ${token}` };
-      const response = await fetch(url, { headers });
-      const data = await response.json();
+        // --- SỬA LỖI: Dùng alertsApi (đã có interceptor) ---
+        // (axios sẽ tự động xử lý params)
+      const response = await alertsApi.searchByProject(projectId, params);
+      const data = response.data;
+        // --------------------------------------------------
       if (data.code !== 1000) throw new Error(data.message);
       setAlerts(data.result.content || []); // Lưu kết quả tìm kiếm
     } catch (err) {
       console.error('Error fetching history:', err);
-      setError(err.message);
+      setError(err.response ? err.response.data.message : err.message);
     }
     setLoadingSearch(false);
   };
 
+  // --- Render Logic (Giữ nguyên) ---
   if (loadingProjects) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
@@ -156,7 +152,7 @@ const History = () => {
           </div>
           
           <HistoryTable 
-            data={alerts} // Truyền 'alerts' (kết quả tìm kiếm)
+            data={alerts}
             isLoading={loadingSearch}
           />
         </div>

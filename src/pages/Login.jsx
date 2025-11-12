@@ -12,8 +12,9 @@ import {
 import GoogleIcon from "@mui/icons-material/Google";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getToken, setToken, setRole } from "../services/localStorageService";
+import { getToken, setAuthTokens } from "../services/localStorageService";
 import '../assets/styles/login.css';
+import axios from 'axios';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -42,33 +43,43 @@ const Login = () => {
         }
     }, [navigate]);
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => { // Sửa: Dùng async
         event.preventDefault();
 
-        fetch("http://localhost:8080/safetyconstruction/auth/token", {
-            method: "POST",
-        headers: {
-        "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-        name: username,
-        password: password,
-        }),
-    })
-        .then((response) => response.json())
-        .then((data) => {
-        if (data.code !== 1000) {
-            throw new Error(data.message);
+        try {
+            // Sửa: Dùng axios (giống như lần trước tôi đã gửi)
+            const response = await axios.post(
+                "http://localhost:8080/safetyconstruction/auth/token", 
+                {
+                    name: username,
+                    password: password,
+                }
+            );
+            
+            const data = response.data;
+
+            if (data.code !== 1000) {
+                throw new Error(data.message);
+            }
+
+            // --- SỬA LỖI GỐC (ROOT CAUSE) ---
+            const { token, refreshToken } = data.result;
+
+            if (!token || !refreshToken) {
+                throw new Error("Invalid response: Missing tokens.");
+            }
+
+            // Dùng hàm mới để lưu CẢ HAI
+            setAuthTokens(token, refreshToken); 
+            // ------------------------------------
+
+            window.location.href = '/'; // Tải lại trang
+
+        } catch (error) {
+            const message = error.response?.data?.message || error.message;
+            setSnackBarMessage(message);
+            setSnackBarOpen(true);
         }
-        setToken(data.result?.token);
-        setRole(data.result?.role);
-        // Force a page reload to update the authentication state
-        window.location.href = '/';
-        })
-        .catch((error) => {
-        setSnackBarMessage(error.message);
-        setSnackBarOpen(true);
-        });
     };
 
     return (

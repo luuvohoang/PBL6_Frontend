@@ -50,7 +50,7 @@ const Register = () => {
       return;
     }
 
-    fetch("http://localhost:8080/safetyconstruction/users", {
+    fetch("http://localhost:8080/safetyconstruction/auth/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

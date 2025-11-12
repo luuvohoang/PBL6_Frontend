@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import { getToken } from '../../services/localStorageService';
+import { getToken, removeAuthTokens } from '../../services/localStorageService';
 import { Client } from '@stomp/stompjs'; // Thêm
 import SockJS from 'sockjs-client';      // Thêm
 import { jwtDecode } from 'jwt-decode';
@@ -137,15 +137,38 @@ const Navbar = () => {
     };
   }, [userId]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refresh_token'); // Xóa cả refresh token
-    setIsAuthenticated(false);
-    if (stompClientRef.current) {
-      stompClientRef.current.deactivate(); // Ngắt kết nối WS
+  const handleLogout = async () => {
+    const token = getToken();
+    
+    // 1. Gọi API Backend (để vô hiệu hóa token)
+    try {
+      if (token) {
+        // (Gửi token hiện tại để backend vô hiệu hóa nó)
+        await authApiProtected.logout({ token: token }); 
+      }
+    } catch (error) {
+      // Bỏ qua lỗi (ví dụ: token đã hết hạn),
+      // vì chúng ta vẫn muốn đăng xuất ở frontend
+      console.error("Lỗi khi gọi API logout:", error);
+    } finally {
+      // 2. Ngắt kết nối WebSocket
+      if (stompClientRef.current) {
+        stompClientRef.current.deactivate();
+      }
+
+      // 3. Xóa token (Dùng hàm chuẩn)
+      removeAuthTokens(); // (Hàm này xóa 'access_token' VÀ 'refresh_token')
+      
+      // 4. Cập nhật state
+      setIsAuthenticated(false);
+      setNotifications([]);
+      setUnreadCount(0);
+      setUserId(null);
+
+      // 5. Chuyển hướng về Login (Dùng window.location để tải lại hoàn toàn)
+      window.location.href = '/login';
     }
-    window.location.href = '/login';
-  };
+  };
 
   const markAsRead = async (notificationId) => {
     // 1. Cập nhật UI ngay lập tức

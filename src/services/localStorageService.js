@@ -1,23 +1,27 @@
-export const setToken = (token) => {
-    localStorage.setItem('token', token);
+// File: src/services/localStorageService.js
+
+// Tên khóa (key) nhất quán
+const ACCESS_TOKEN_KEY = 'access_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
+
+// Hàm lưu CẢ HAI token
+export const setAuthTokens = (accessToken, refreshToken) => {
+  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
 };
 
+// Hàm lấy Access Token
 export const getToken = () => {
-    return localStorage.getItem('token');
+  return localStorage.getItem(ACCESS_TOKEN_KEY);
 };
 
-export const removeToken = () => {
-    localStorage.removeItem('token');
+// Hàm lấy Refresh Token
+export const getRefreshToken = () => {
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
 };
 
-export const setRole = (role) => {
-    localStorage.setItem('role', role);
-};
-
-export const getUserRole = () => {
-    return localStorage.getItem('role');
-};
-
-export const removeRole = () => {
-    localStorage.removeItem('role');
+// Hàm Xóa (cho Logout)
+export const removeAuthTokens = () => {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
 };

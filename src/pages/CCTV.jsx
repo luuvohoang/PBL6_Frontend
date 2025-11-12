@@ -4,12 +4,9 @@ import { getToken } from '../services/localStorageService';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import '../assets/styles/cctv.css';
 
-// --- HÀM TRỢ GIÚP MỚI ---
-/**
- * Chuyển đổi link YouTube (ví dụ: /watch?v=) sang link Embed (/embed/)
- * @param {string} url - Link YouTube gốc từ CSDL
- * @returns {string} - Link đã được chuyển đổi để nhúng vào iframe
- */
+
+import { projectsApi, camerasApi, alertsApi } from '../services/api';
+ 
 const convertYouTubeUrlToEmbed = (url) => {
   if (!url) return '';
   
@@ -56,8 +53,6 @@ const CCTV = () => {
   const [error, setError] = useState(null);
   const [dateTime, setDateTime] = useState(new Date());
 
-  const API_BASE_URL = "http://localhost:8080/safetyconstruction/api";
-
   // 1. Kiểm tra xác thực
   useEffect(() => {
     if (!token) navigate("/login");
@@ -69,11 +64,9 @@ const CCTV = () => {
     const fetchProjects = async () => {
       setLoading(true);
       try {
-        const response = await fetch(`${API_BASE_URL}/projects`, {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await response.json();
+        const response = await projectsApi.getAll(); 
+        const data = response.data;
+
         if (data.code !== 1000) throw new Error(data.message);
         
         const projectList = data.result.content;
@@ -82,11 +75,14 @@ const CCTV = () => {
         if (projectList.length > 0) {
           setSelectedProjectId(projectList[0].id);
         }
+        else {
+          setLoading(false); 
+        }
       } catch (err) {
         console.error('Error fetching projects:', err);
-        setError(err.message);
+        setError(err.response ? err.response.data.message : err.message);
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchProjects();
   }, [token]);
@@ -95,38 +91,40 @@ const CCTV = () => {
   useEffect(() => {
     if (!token || !selectedProjectId) return;
     const fetchDataForProject = async () => {
-      setLoading(true);
+      setLoading(true); // Bật loading khi đổi dự án
       try {
-        // Tải Cameras
-        const camResponse = await fetch(
-          `${API_BASE_URL}/projects/${selectedProjectId}/cameras`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const camData = await camResponse.json();
+        // --- SỬA LỖI: Dùng camerasApi và alertsApi ---
+
+        // Tải Cameras (dùng apiService)
+        const camResponse = await camerasApi.getAllByProject(selectedProjectId);
+        const camData = camResponse.data;
         if (camData.code !== 1000) throw new Error(camData.message);
         
         const cameraList = camData.result.content;
         setCameras(cameraList);
 
-        // Tự động chọn camera đầu tiên (lưu link YouTube gốc)
         if (cameraList.length > 0) {
-          setSelectedCameraUrl(cameraList[0].rtspUrl); // 'rtspUrl' giờ là link YouTube
+          setSelectedCameraUrl(cameraList[0].rtspUrl);
         } else {
           setSelectedCameraUrl('');
         }
 
-        // Tải Alerts
-        const alertResponse = await fetch(
-          `${API_BASE_URL}/projects/${selectedProjectId}/alerts?size=10&sort=happenedAt,desc`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const alertData = await alertResponse.json();
+        // Tải Alerts (dùng apiService)
+        // (Định nghĩa params cho phân trang/sắp xếp)
+        const alertParams = {
+          size: 10,
+          sort: 'happenedAt,desc'
+        };
+        const alertResponse = await alertsApi.searchByProject(selectedProjectId, alertParams);
+        const alertData = alertResponse.data;
         if (alertData.code !== 1000) throw new Error(alertData.message);
         setAlerts(alertData.result.content);
+        // --- HẾT SỬA ---
 
       } catch (err) {
+        // Interceptor đã xử lý 401
         console.error('Error fetching project data:', err);
-        setError(err.message);
+        setError(err.response ? err.response.data.message : err.message);
       }
       setLoading(false);
     };

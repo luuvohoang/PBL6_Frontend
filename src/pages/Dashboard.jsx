@@ -7,7 +7,7 @@ import { Box, CircularProgress, Typography, Card, CardContent } from '@mui/mater
 import '../assets/styles/dashboard.css';
 
 // URL Gốc của API Backend
-const API_BASE_URL = "http://localhost:8080/safetyconstruction/api";
+import { dashboardApi } from '../services/api';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -41,10 +41,8 @@ const Dashboard = () => {
       setLoading(true);
       setError(null);
       try {
-        const headers = { Authorization: `Bearer ${token}` };
-        // SỬA: Gọi API mới, không có query param (để lấy toàn cục)
-        const response = await fetch(`${API_BASE_URL}/dashboard`, { headers }); 
-        const data = await response.json();
+        const response = await dashboardApi.getData(); 
+        const data = response.data;
 
         if (data.code !== 1000) throw new Error(data.message);
 

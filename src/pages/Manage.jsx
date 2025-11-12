@@ -17,7 +17,13 @@ import EditProjectModal from '../components/Manage/EditProjectModal';
 import '../assets/styles/manage.css';
 
 // URL Gốc của API Backend
-const API_BASE_URL = "http://localhost:8080/safetyconstruction";
+import { 
+  projectsApi, 
+  camerasApi, 
+  userApi,
+  roleApi,
+  permissionApi
+} from '../services/api';
 
 // Hàm kiểm tra vai trò Admin
 const checkIsAdmin = () => {
@@ -25,8 +31,12 @@ const checkIsAdmin = () => {
   if (!token) return false;
   try {
     const decodedToken = jwtDecode(token);
-    const authorities = decodedToken.scope || decodedToken.roles || [];
+    console.log("Decoded Token:", decodedToken);
+    const authorities = decodedToken.scope || decodedToken.authorities || [];
+    console.log("Decoded Token:", authorities);
+    console.log("Decoded Token:", authorities.includes('ROLE_ADMIN'));
     return authorities.includes('ROLE_ADMIN') || authorities.includes('ADMIN');
+    
   } catch (e) {
     console.error("Lỗi giải mã token:", e);
     return false;
@@ -36,7 +46,7 @@ const checkIsAdmin = () => {
 const Manage = () => {
   const navigate = useNavigate();
   const [token, setToken] = useState(getToken());
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => checkIsAdmin(getToken()));;
 
   // --- State dữ liệu ---
   const [projects, setProjects] = useState([]);
@@ -76,75 +86,57 @@ const Manage = () => {
       setLoading(true);
       setError(null);
       try {
-        const headers = { Authorization: `Bearer ${token}` };
+        // Interceptor của apiService sẽ tự động xử lý token và lỗi 401
 
-        // Tải projects
-        const projectRes = await fetch(`${API_BASE_URL}/api/projects`, { headers });
-        const projectData = await projectRes.json();
-        if (projectData.code !== 1000) throw new Error(`Project Error: ${projectData.message}`);
-        const loadedProjects = projectData.result.content || [];
+        // --- 1. Luôn tải Projects ---
+        const projRes = await projectsApi.getAll();
+        const loadedProjects = projRes.data.result.content || [];
         setProjects(loadedProjects);
 
+        // --- 2. Tải Cameras (Tùy theo Role) ---
         let loadedCameras = [];
-        
         if (isAdmin) {
-          // Admin: tải tất cả cameras
-          const cameraRes = await fetch(`${API_BASE_URL}/api/cameras`, { headers });
-          const cameraData = await cameraRes.json();
-          if (cameraData.code !== 1000) throw new Error(`Camera Error: ${cameraData.message}`);
-          loadedCameras = cameraData.result.content || [];
+          // A. ADMIN: Gọi API Toàn cục
+          const camRes = await camerasApi.getAllGlobal();
+          loadedCameras = camRes.data.result.content || [];
         } else {
-          // Manager: tải cameras từ từng project (cần CAMERA_READ)
-          const cameraPromises = loadedProjects.map(project => 
-            fetch(`${API_BASE_URL}/api/projects/${project.id}/cameras`, { headers })
-              .then(res => res.json())
-              .then(data => {
-                if (data.code === 1000) {
-                  return data.result.content.map(cam => ({
-                    ...cam,
-                    projectName: project.name
-                  }));
-                }
-                return [];
-              })
+          // B. MANAGER: Lặp qua từng Project đã tải
+          const cameraPromises = loadedProjects.map(project =>
+            camerasApi.getAllByProject(project.id)
+              .then(res => res.data.result.content || [])
               .catch(err => {
-                console.error(`Error fetching cameras for project ${project.id}:`, err);
-                return [];
+                console.error(`Lỗi tải camera cho dự án ${project.id}:`, err);
+                return []; 
               })
           );
-          
           const camerasResults = await Promise.all(cameraPromises);
           loadedCameras = camerasResults.flat();
         }
 
-        setCameras(loadedCameras);
+        // Gắn projectName vào camera
+        const camerasWithProjectName = loadedCameras.map(cam => {
+          const project = loadedProjects.find(p => p.id === cam.projectId);
+          return { ...cam, projectName: project ? project.name : 'Unknown' };
+        });
+        setCameras(camerasWithProjectName);
 
-        // Xử lý dữ liệu Admin (chỉ nếu là Admin)
+        // --- 3. Tải dữ liệu Admin (NẾU là Admin) ---
         if (isAdmin) {
           const [userRes, roleRes, permRes] = await Promise.all([
-            fetch(`${API_BASE_URL}/users`, { headers }),
-            fetch(`${API_BASE_URL}/roles`, { headers }),
-            fetch(`${API_BASE_URL}/permissions`, { headers })
+            userApi.getAll(),
+            roleApi.getAll(),
+            permissionApi.getAll(),
           ]);
-
-          const userData = await userRes.json();
-          if (userData.code !== 1000) throw new Error(`User Error: ${userData.message}`);
-          setUsers(userData.result);
-
-          const roleData = await roleRes.json();
-          if (roleData.code !== 1000) throw new Error(`Role Error: ${roleData.message}`);
-          setRoles(roleData.result);
-
-          const permData = await permRes.json();
-          if (permData.code !== 1000) throw new Error(`Permission Error: ${permData.message}`);
-          setAllPermissions(permData.result);
+          setUsers(userRes.data.result || []);
+          setRoles(roleRes.data.result || []);
+          setAllPermissions(permRes.data.result || []);
         }
-        // console.log('Users data:', userData.result);
-        // console.log('Projects data:', projectData.result.content);
-        // console.log('First project manager:', projectData.result.content[0]?.manager);
+
       } catch (err) {
+        // Lỗi 401 đã được Interceptor xử lý (tự động logout)
+        // Đây là các lỗi khác (403, 404, 500...)
         console.error('Error fetching data:', err);
-        setError(err.message);
+        setError(err.response ? err.response.data.message : err.message);
       }
       setLoading(false);
     };
@@ -152,149 +144,93 @@ const Manage = () => {
     fetchAllData();
   }, [token, isAdmin]);
 
-  const handleAddProject = async (projectData) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/projects`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(projectData), // (projectData là { name, description })
-      });
-      const data = await response.json();
-      if (data.code !== 1000) throw new Error(data.message);
-      
-      setProjects([data.result, ...projects]); // Thêm dự án mới vào đầu danh sách
-      setShowAddProject(false);
-    } catch (err) {
-      console.error('Error adding project:', err);
-      setError(err.message);
-    }
-  };
-  
-  const handleOpenEditProject = (project) => {
-    setSelectedProject(project);
-    setShowEditProject(true);
-  };
+  // --- Logic Xử lý Project ---
+const handleAddProject = async (projectData) => {
+  try {
+    const response = await projectsApi.create(projectData);
+    setProjects([response.data.result, ...projects]);
+    setShowAddProject(false);
+  } catch (err) {
+    console.error('Error adding project:', err);
+    setError(err.response?.data?.message || err.message);
+  }
+};
 
-  const handleUpdateProject = async (projectId, projectData) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(projectData), // (projectData là { name, description })
-      });
-      const data = await response.json();
-      if (data.code !== 1000) throw new Error(data.message);
-      
-      setProjects(projects.map(p => p.id === projectId ? data.result : p));
-      setShowEditProject(false);
-    } catch (err) {
-      console.error('Error updating project:', err);
-      setError(err.message);
-    }
-  };
+const handleOpenEditProject = (project) => {
+  setSelectedProject(project);
+  setShowEditProject(true);
+};
 
-  const handleDeleteProject = async (projectId) => {
-    if (!window.confirm("Bạn có chắc muốn xóa dự án này? Việc này KHÔNG THỂ hoàn tác.")) {
-      return;
-    }
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/projects/${projectId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.code !== 1000) throw new Error(data.message);
-      
-      setProjects(projects.filter(p => p.id !== projectId));
-    } catch (err) {
-      console.error('Error deleting project:', err);
-      setError(err.message);
-    }
-  };
-  
-  // --- Logic Xử lý Camera ---
-  const handleDeleteCamera = async (cameraToDelete) => {
+const handleUpdateProject = async (projectId, projectData) => {
+  try {
+    const response = await projectsApi.update(projectId, projectData);
+    setProjects(projects.map(p => p.id === projectId ? response.data.result : p));
+    setShowEditProject(false);
+  } catch (err) {
+    console.error('Error updating project:', err);
+    setError(err.response?.data?.message || err.message);
+  }
+};
+
+const handleDeleteProject = async (projectId) => {
+  if (!window.confirm("Bạn có chắc muốn xóa dự án này? Việc này KHÔNG THỂ hoàn tác.")) return;
+  try {
+    await projectsApi.delete(projectId);
+    setProjects(projects.filter(p => p.id !== projectId));
+  } catch (err) {
+    console.error('Error deleting project:', err);
+    setError(err.response?.data?.message || err.message);
+  }
+};
+
+
+// --- Logic Xử lý Camera ---
+const handleDeleteCamera = async (cameraToDelete) => {
   if (!cameraToDelete.projectId) {
     console.error("Lỗi: Không thể xóa camera vì thiếu projectId.");
     setError("Dữ liệu camera bị lỗi, thiếu projectId.");
     return;
   }
-  
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/projects/${cameraToDelete.projectId}/cameras/${cameraToDelete.id}`,
-      {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-    const data = await response.json();
-    if (data.code !== 1000) throw new Error(data.message);
-    
-    // 1. Xóa camera khỏi state cameras
+    await camerasApi.delete(cameraToDelete.projectId, cameraToDelete.id);
     setCameras(cameras.filter(camera => camera.id !== cameraToDelete.id));
-    
-    // 2. QUAN TRỌNG: Cập nhật state projects - xóa camera khỏi project
-    setProjects(prevProjects => 
-      prevProjects.map(project => 
-        project.id === cameraToDelete.projectId 
+
+    // Cập nhật lại state projects
+    setProjects(prevProjects =>
+      prevProjects.map(project =>
+        project.id === cameraToDelete.projectId
           ? {
               ...project,
-              cameras: project.cameras ? project.cameras.filter(cam => cam.id !== cameraToDelete.id) : []
+              cameras: project.cameras
+                ? project.cameras.filter(cam => cam.id !== cameraToDelete.id)
+                : [],
             }
           : project
       )
     );
-    
-    console.log('Camera deleted and projects state updated');
   } catch (err) {
     console.error('Error deleting camera:', err);
-    setError(err.message);
+    setError(err.response?.data?.message || err.message);
   }
 };
 
-  const handleAddCamera = async (projectId, cameraData) => {
+const handleAddCamera = async (projectId, cameraData) => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/api/projects/${projectId}/cameras`, 
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(cameraData),
-      }
-    );
-    const data = await response.json();
-    if (data.code !== 1000) throw new Error(data.message);
+    const response = await camerasApi.create(projectId, cameraData);
+    const newCamera = response.data.result;
 
-    // TÌM PROJECT NAME CHÍNH XÁC
+    // Tìm tên project
     const project = projects.find(p => p.id === parseInt(projectId));
     const projectName = project ? project.name : "Unknown Project";
 
-    // Thêm camera mới với projectName chính xác
-    const newCamera = {
-      ...data.result,
-      projectName: projectName
-    };
+    // Gắn projectName vào camera
+    setCameras(prev => [...prev, { ...newCamera, projectName }]);
 
-    setCameras(prevCameras => [...prevCameras, newCamera]);
-
-    // CẬP NHẬT STATE PROJECTS
-    setProjects(prevProjects => 
-      prevProjects.map(project => 
-        project.id === parseInt(projectId) 
-          ? {
-              ...project,
-              cameras: [...(project.cameras || []), data.result]
-            }
+    // Cập nhật state projects
+    setProjects(prevProjects =>
+      prevProjects.map(project =>
+        project.id === parseInt(projectId)
+          ? { ...project, cameras: [...(project.cameras || []), newCamera] }
           : project
       )
     );
@@ -302,136 +238,88 @@ const Manage = () => {
     setShowAddCamera(false);
   } catch (err) {
     console.error('Error adding camera:', err);
-    setError(err.message);
+    setError(err.response?.data?.message || err.message);
   }
 };
-  // --- Logic Xử lý User (chỉ Admin) ---
-  const handleAddUser = async (userData) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/users`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(userData),
-      });
-      const data = await response.json();
-      if (data.code !== 1000) throw new Error(data.message);
 
-      setUsers([...users, data.result]);
-      setShowAddUser(false);
-    } catch (err) {
-      console.error('Error adding user:', err);
-      setError(err.message);
-    }
-  };
 
-  const handleEditUser = (user) => {
-    setSelectedUser(user);
-    setShowEditUser(true);
-  };
+// --- Logic Xử lý User ---
+const handleAddUser = async (userData) => {
+  try {
+    const response = await userApi.create(userData);
+    setUsers([...users, response.data.result]);
+    setShowAddUser(false);
+  } catch (err) {
+    console.error('Error adding user:', err);
+    setError(err.response?.data?.message || err.message);
+  }
+};
 
-  const handleUpdateUser = async (userId, userData) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(userData),
-      });
-      const data = await response.json();
-      if (data.code !== 1000) throw new Error(data.message);
-      
-      setUsers(users.map(user => user.id === userId ? data.result : user));
-      setShowEditUser(false);
-    } catch (err) {
-      console.error('Error updating user:', err);
-      setError(err.message);
-    }
-  };
+const handleEditUser = (user) => {
+  setSelectedUser(user);
+  setShowEditUser(true);
+};
 
-  const handleDeleteUser = async (userId) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/users/${userId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.code !== 1000) throw new Error(data.message);
-      
-      setUsers(users.filter(user => user.id !== userId));
-    } catch (err) {
-      console.error('Error deleting user:', err);
-      setError(err.message);
-    }
-  };
+const handleUpdateUser = async (userId, userData) => {
+  try {
+    const response = await userApi.update(userId, userData);
+    setUsers(users.map(u => (u.id === userId ? response.data.result : u)));
+    setShowEditUser(false);
+  } catch (err) {
+    console.error('Error updating user:', err);
+    setError(err.response?.data?.message || err.message);
+  }
+};
 
-  // --- Logic Xử lý Role (chỉ Admin) ---
-  const handleAddRole = async (roleData) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/roles`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(roleData),
-      });
-      const data = await response.json();
-      if (data.code !== 1000) throw new Error(data.message);
+const handleDeleteUser = async (userId) => {
+  try {
+    await userApi.delete(userId);
+    setUsers(users.filter(u => u.id !== userId));
+  } catch (err) {
+    console.error('Error deleting user:', err);
+    setError(err.response?.data?.message || err.message);
+  }
+};
 
-      setRoles([...roles, data.result]);
-      setShowAddRole(false);
-    } catch (err) {
-      console.error('Error adding role:', err);
-      setError(err.message);
-    }
-  };
 
-  const handleOpenEditRole = (role) => {
-    setSelectedRole(role);
-    setShowEditRole(true);
-  };
-  
-  const handleUpdateRole = async (roleName, roleData) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/roles/${roleName}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(roleData),
-      });
-      const data = await response.json();
-      if (data.code !== 1000) throw new Error(data.message);
+// --- Logic Xử lý Role ---
+const handleAddRole = async (roleData) => {
+  try {
+    const response = await roleApi.create(roleData);
+    setRoles([...roles, response.data.result]);
+    setShowAddRole(false);
+  } catch (err) {
+    console.error('Error adding role:', err);
+    setError(err.response?.data?.message || err.message);
+  }
+};
 
-      setRoles(roles.map(r => r.name === roleName ? data.result : r));
-      setShowEditRole(false);
-    } catch (err) {
-      console.error('Error updating role:', err);
-      setError(err.message);
-    }
-  };
+const handleOpenEditRole = (role) => {
+  setSelectedRole(role);
+  setShowEditRole(true);
+};
 
-  const handleDeleteRole = async (roleName) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/roles/${roleName}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.code !== 1000) throw new Error(data.message);
-      
-      setRoles(roles.filter(role => role.name !== roleName));
-    } catch (err) {
-      console.error('Error deleting role:', err);
-      setError(err.message);
-    }
-  };
+const handleUpdateRole = async (roleName, roleData) => {
+  try {
+    const response = await roleApi.update(roleName, roleData);
+    setRoles(roles.map(r => (r.name === roleName ? response.data.result : r)));
+    setShowEditRole(false);
+  } catch (err) {
+    console.error('Error updating role:', err);
+    setError(err.response?.data?.message || err.message);
+  }
+};
+
+const handleDeleteRole = async (roleName) => {
+  try {
+    await roleApi.delete(roleName);
+    setRoles(roles.filter(r => r.name !== roleName));
+  } catch (err) {
+    console.error('Error deleting role:', err);
+    setError(err.response?.data?.message || err.message);
+  }
+};
+
 
   // --- Render Logic ---
   if (loading) {
