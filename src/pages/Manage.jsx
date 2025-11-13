@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getToken } from '../services/localStorageService';
-import { Box, CircularProgress, Typography } from '@mui/material';
+// import { Box, CircularProgress, Typography } from '@mui/material';
 import { jwtDecode } from 'jwt-decode';
 import CameraTable from '../components/Manage/CameraTable';
 import UserTable from '../components/Manage/UserTable';
@@ -14,6 +14,13 @@ import EditRoleModal from '../components/Manage/EditRoleModal';
 import ProjectTable from '../components/Manage/ProjectTable';
 import AddProjectModal from '../components/Manage/AddProjectModal';
 import EditProjectModal from '../components/Manage/EditProjectModal';
+import { 
+    Box, 
+    CircularProgress, 
+    Typography,
+    Snackbar,  // <-- THÊM CÁI NÀY
+    Alert      // <-- VÀ CÁI NÀY (bạn sẽ cần nó ngay sau đây)
+} from '@mui/material';
 import '../assets/styles/manage.css';
 
 // URL Gốc của API Backend
@@ -47,7 +54,16 @@ const Manage = () => {
   const navigate = useNavigate();
   const [token, setToken] = useState(getToken());
   const [isAdmin, setIsAdmin] = useState(() => checkIsAdmin(getToken()));;
+  const [snackBar, setSnackBar] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
 
+  const handleCloseSnackBar = (event, reason) => {
+    if (reason === 'clickaway') return;
+    setSnackBar(prev => ({ ...prev, open: false }));
+  };
   // --- State dữ liệu ---
   const [projects, setProjects] = useState([]);
   const [cameras, setCameras] = useState([]);
@@ -249,9 +265,21 @@ const handleAddUser = async (userData) => {
     const response = await userApi.create(userData);
     setUsers([...users, response.data.result]);
     setShowAddUser(false);
+    
+    // THÊM MỚI: Thông báo THÀNH CÔNG
+    setSnackBar({
+      open: true,
+      message: 'User added successfully!',
+      severity: 'success'
+    });
+
   } catch (err) {
-    console.error('Error adding user:', err);
-    setError(err.response?.data?.message || err.message);
+    // SỬA: Dùng setSnackBar cho lỗi
+    setSnackBar({
+      open: true,
+      message: err.response?.data?.message || err.message,
+      severity: 'error'
+    });
   }
 };
 
@@ -337,6 +365,16 @@ const handleDeleteRole = async (roleName) => {
 
   return (
     <div className="manage-page">
+      <Snackbar
+        open={snackBar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackBar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <Alert onClose={handleCloseSnackBar} severity={snackBar.severity} sx={{ width: '100%' }}>
+          {snackBar.message}
+        </Alert>
+      </Snackbar>
+
       <div className="box-title">
         <h1>Manage</h1>
       </div>

@@ -51,7 +51,7 @@ const Dashboard = () => {
         setSummary(result.summary);
         setWeekdayStats(result.weekdayStats || []);
         setMonthlyStats(result.monthlyStats || []);
-        setRecentAlerts(result.recentAlerts.content || []); // Dùng .content vì là Page
+        setRecentAlerts(result.recentAlerts?.content || []);// Dùng .content vì là Page
 
       } catch (err) {
         console.error('Error fetching dashboard data:', err);

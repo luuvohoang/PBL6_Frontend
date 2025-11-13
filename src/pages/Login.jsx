@@ -132,6 +132,8 @@ const Login = () => {
                             onSubmit={handleSubmit}
                         >
                             <TextField
+                                id="username"  
+                                name="username" 
                                 label="Username"
                                 variant="outlined"
                                 fullWidth
@@ -140,6 +142,8 @@ const Login = () => {
                                 onChange={(e) => setUsername(e.target.value)}
                             />
                             <TextField
+                                id="password"  
+                                name="password" 
                                 label="Password"
                                 type="password"
                                 variant="outlined"
